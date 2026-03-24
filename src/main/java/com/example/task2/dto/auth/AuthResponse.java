@@ -7,6 +7,7 @@ public record AuthResponse(
         Long employeeId,
         String name,
         String email,
-        EmployeeRole role
+        EmployeeRole role,
+        String token
 ) {
 }

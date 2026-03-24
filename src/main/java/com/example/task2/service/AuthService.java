@@ -5,9 +5,9 @@ import com.example.task2.dto.auth.LoginRequest;
 import com.example.task2.dto.auth.SignupRequest;
 import com.example.task2.model.Employee;
 import com.example.task2.repository.EmployeeRepository;
+import com.example.task2.security.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -17,7 +17,8 @@ import org.springframework.web.server.ResponseStatusException;
 public class AuthService {
 
     private final EmployeeRepository employeeRepository;
-    private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
 
     public AuthResponse signup(SignupRequest request) {
         if (employeeRepository.existsByEmail(request.email())) {
@@ -38,7 +39,8 @@ public class AuthService {
                 saved.getId(),
                 saved.getName(),
                 saved.getEmail(),
-                saved.getRole());
+            saved.getRole(),
+            null);
     }
 
     public AuthResponse login(LoginRequest request) {
@@ -49,11 +51,14 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
         }
 
+        String token = jwtService.generateToken(employee);
+
         return new AuthResponse(
                 "Login successful",
                 employee.getId(),
                 employee.getName(),
                 employee.getEmail(),
-                employee.getRole());
+            employee.getRole(),
+            token);
     }
 }
