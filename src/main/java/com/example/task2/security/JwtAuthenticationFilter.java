@@ -41,14 +41,23 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             email = jwtService.extractUsername(jwt);
         } catch (JwtException | IllegalArgumentException ex) {
-            filterChain.doFilter(request, response);
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json");
+            response.getWriter().write("{\"message\":\"Invalid or malformed JWT token\"}");
             return;
         }
 
         if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             Employee employee = employeeRepository.findByEmail(email).orElse(null);
 
-            if (employee != null && jwtService.isTokenValid(jwt, employee.getEmail())) {
+            if (employee == null) {
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.setContentType("application/json");
+                response.getWriter().write("{\"message\":\"User from token not found\"}");
+                return;
+            }
+
+            if (jwtService.isTokenValid(jwt, employee.getEmail())) {
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                         employee.getEmail(),
                         null,
@@ -56,6 +65,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 );
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authToken);
+            } else {
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.setContentType("application/json");
+                response.getWriter().write("{\"message\":\"JWT token is expired or invalid\"}");
+                return;
             }
         }
 
